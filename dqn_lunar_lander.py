@@ -60,7 +60,7 @@ class Brain:
 
 if __name__ == "__main__":
     # Flag used to enable or disable screen recording
-    recording_is_enabled = False
+    recording_is_enabled = True
 
     # Initializes the environment
     env = gym.make('LunarLander-v2')
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     # Defines training related constants
     batch_size = 32
     num_episodes = 5000
-    num_episode_steps = 10000  # constant value
+    num_episode_steps = env.spec.max_episode_steps  # constant value
     action_size = env.action_space.n
     state_size = env.observation_space.shape[0]
 
