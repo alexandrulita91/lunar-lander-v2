@@ -1,6 +1,7 @@
 """
-LunarLander-v2 -- Deep Q-learning with Experience Replay
+LunarLander-v2 -- Deep Q-learning with Experience Replay (DQN)
 """
+import os
 import random
 from collections import deque
 
@@ -11,15 +12,15 @@ from keras.layers import Dense
 from keras.optimizers import Adam
 
 
-class Brain:
+class Agent:
     def __init__(self, state_size, action_size, memory_size=50000):
         self.state_size = state_size
         self.action_size = action_size
         self.memory = deque(maxlen=memory_size)
         self.gamma = 0.95  # discount rate
-        self.epsilon = 1.0  # exploration rate
+        self.epsilon = 1  # exploration rate
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
+        self.epsilon_decay = 0.993  # 0.995 before (320 episodes)
         self.learning_rate = 0.001
         self.model = self._build_model()
 
@@ -41,21 +42,32 @@ class Brain:
             return np.argmax(self.model.predict(state)[0])
 
     def replay(self, batch_size=32):
+        batch_train_x = []
+        batch_train_y = []
+
         for state, action, reward, next_state, done in random.sample(self.memory, batch_size):
             target = reward
             if not done:
                 target = (reward + self.gamma * np.amax(self.model.predict(next_state)[0]))
             target_f = self.model.predict(state)
             target_f[0][action] = target
-            self.model.fit(state, target_f, epochs=1, verbose=0)
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
 
-    def load(self, name):
-        self.model.load_weights(name)
+            batch_train_x.append(state[0])
+            batch_train_y.append(target_f[0])
 
-    def save(self, name):
-        self.model.save_weights(name)
+        self.model.fit(
+            np.array(batch_train_x),
+            np.array(batch_train_y),
+            epochs=1,
+            verbose=0
+        )
+
+    def load_weights(self, weights_file):
+        self.epsilon = self.epsilon_min
+        self.model.load_weights(weights_file)
+
+    def save_weights(self, weights_file):
+        self.model.save_weights(weights_file)
 
 
 if __name__ == "__main__":
@@ -76,8 +88,12 @@ if __name__ == "__main__":
     action_size = env.action_space.n
     state_size = env.observation_space.shape[0]
 
-    # Creates the brain
-    brain = Brain(state_size=state_size, action_size=action_size)
+    # Creates an agent
+    agent = Agent(state_size=state_size, action_size=action_size)
+
+    # Loads the model if exists
+    if os.path.isfile("lunar_lander-v0.h5"):
+        agent.load_weights("lunar_lander-v0.h5")
 
     for episode in range(num_episodes):
         # Defines the total reward per episode
@@ -94,7 +110,7 @@ if __name__ == "__main__":
             env.render(mode="human")
 
             # Gets a new action
-            action = brain.act(state)
+            action = agent.act(state)
 
             # Takes action and calculates the total reward
             observation, reward, done, _ = env.step(action)
@@ -104,7 +120,7 @@ if __name__ == "__main__":
             next_state = np.reshape(observation, [1, state_size])
 
             # Memorizes the experience
-            brain.memorize(state, action, reward, next_state, done)
+            agent.memorize(state, action, reward, next_state, done)
 
             # Updates the state
             state = next_state
@@ -118,11 +134,15 @@ if __name__ == "__main__":
                 print("Episode %d/%d timed out at %d with total reward = %f."
                       % (episode + 1, num_episodes, episode_step + 1, total_reward))
 
-            if len(brain.memory) > batch_size:
-                brain.replay(batch_size)
+            if len(agent.memory) > batch_size:
+                agent.replay(batch_size)
 
-        # Stores memory on disk
-        brain.save("lunar_lander.h5")
+        # Update epsilon
+        agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
+
+        # Saves the weights
+        agent.save_weights("lunar_lander-v0.h5")
+
 
     # Closes the environment
     env.close()
