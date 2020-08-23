@@ -22,6 +22,9 @@ A deep Q network (DQN) (Mnih et al., 2013) is an extension of Q learning, which 
 You can run the script using the following command: 
 - `pipenv run python lunar_lander_v2_dqn.py`
 
+## Demo video
+https://www.youtube.com/watch?v=PEhddjD6QCY
+
 ## Improvement ideas
 - improve the code quality
 - remove unnecessary comments
