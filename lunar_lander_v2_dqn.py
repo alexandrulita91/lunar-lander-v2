@@ -143,6 +143,5 @@ if __name__ == "__main__":
         # Saves the weights
         agent.save_weights("lunar_lander-v0.h5")
 
-
     # Closes the environment
     env.close()
