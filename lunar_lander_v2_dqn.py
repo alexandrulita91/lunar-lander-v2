@@ -91,7 +91,7 @@ if __name__ == "__main__":
     # Creates an agent
     agent = Agent(state_size=state_size, action_size=action_size)
 
-    # Loads the model if exists
+    # Loads the weights
     if os.path.isfile("lunar_lander-v0.h5"):
         agent.load_weights("lunar_lander-v0.h5")
 
