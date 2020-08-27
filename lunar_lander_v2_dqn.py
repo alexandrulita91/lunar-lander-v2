@@ -7,7 +7,7 @@ from collections import deque
 
 import gym
 import numpy as np
-from keras.models import Sequential
+from keras.models import Sequential, clone_model
 from keras.layers import Dense
 from keras.optimizers import Adam
 
@@ -17,12 +17,16 @@ class Agent:
         self.state_size = state_size
         self.action_size = action_size
         self.memory = deque(maxlen=memory_size)
+        self.tau = 0  # train target network tau == max_tau
+        self.max_tau = 1000
         self.gamma = 0.95  # discount rate
         self.epsilon = 1  # exploration rate
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.993  # 0.995 before (320 episodes)
+        self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.model = self._build_model()
+        self.target_model = self._build_model()
+        self.target_model.set_weights(self.model.get_weights())
 
     def _build_model(self):
         model = Sequential()
@@ -31,6 +35,11 @@ class Agent:
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
+
+    def update_target_network(self):
+        self.target_model = clone_model(self.model)
+        self.target_model.set_weights(self.model.get_weights())
+        self.tau = 0
 
     def memorize(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -45,10 +54,15 @@ class Agent:
         batch_train_x = []
         batch_train_y = []
 
+        if self.tau == self.max_tau:
+            self.update_target_network()
+        else:
+            self.tau += 1
+
         for state, action, reward, next_state, done in random.sample(self.memory, batch_size):
             target = reward
             if not done:
-                target = (reward + self.gamma * np.amax(self.model.predict(next_state)[0]))
+                target = (reward + self.gamma * np.amax(self.target_model.predict(next_state)[0]))
             target_f = self.model.predict(state)
             target_f[0][action] = target
 
@@ -125,6 +139,10 @@ if __name__ == "__main__":
             # Updates the state
             state = next_state
 
+            # Allows agent to learn from previous experiences
+            if len(agent.memory) > batch_size:
+                agent.replay(batch_size)
+
             if done:
                 print("Episode %d/%d finished after %d episode steps with total reward = %f."
                       % (episode + 1, num_episodes, episode_step + 1, total_reward))
@@ -133,9 +151,6 @@ if __name__ == "__main__":
             elif episode_step >= num_episode_steps - 1:
                 print("Episode %d/%d timed out at %d with total reward = %f."
                       % (episode + 1, num_episodes, episode_step + 1, total_reward))
-
-            if len(agent.memory) > batch_size:
-                agent.replay(batch_size)
 
         # Update epsilon
         agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
