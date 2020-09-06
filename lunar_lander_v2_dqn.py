@@ -18,8 +18,8 @@ class Agent:
         self.action_size = action_size
         self.batch_size = batch_size
         self.memory = deque(maxlen=memory_size)
-        self.max_tau = 100
-        self.update_frequency = 1
+        self.max_tau = 1000
+        self.update_frequency = 4
         self.gamma = 0.999  # discount rate
         self.epsilon = 1  # exploration rate
         self.epsilon_min = 0.01
