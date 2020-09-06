@@ -13,25 +13,27 @@ from keras.optimizers import Adam
 
 
 class Agent:
-    def __init__(self, state_size, action_size, memory_size=50000):
+    def __init__(self, state_size, action_size, batch_size=64, memory_size=100000):
         self.state_size = state_size
         self.action_size = action_size
+        self.batch_size = batch_size
         self.memory = deque(maxlen=memory_size)
-        self.tau = 0  # train target network tau == max_tau
-        self.max_tau = 1000
-        self.gamma = 0.95  # discount rate
+        self.max_tau = 100
+        self.update_frequency = 1
+        self.gamma = 0.999  # discount rate
         self.epsilon = 1  # exploration rate
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
-        self.learning_rate = 0.001
+        self.epsilon_decay = 0.99
+        self.learning_rate = 0.005
         self.model = self._build_model()
         self.target_model = self._build_model()
         self.target_model.set_weights(self.model.get_weights())
 
     def _build_model(self):
         model = Sequential()
-        model.add(Dense(24, input_dim=self.state_size, activation='relu'))
-        model.add(Dense(24, activation='relu'))
+        model.add(Dense(64, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(64, activation='relu'))
+        model.add(Dense(32, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
@@ -50,29 +52,38 @@ class Agent:
         else:
             return np.argmax(self.model.predict(state)[0])
 
-    def replay(self, batch_size=32):
-        batch_train_x = []
-        batch_train_y = []
+    def replay(self):
+        if self.batch_size > len(self.memory):
+            return
 
-        if self.tau == self.max_tau:
-            self.update_target_network()
-        else:
-            self.tau += 1
+        # Randomly sample a batch from the memory
+        random_batch = random.sample(self.memory, self.batch_size)
 
-        for state, action, reward, next_state, done in random.sample(self.memory, batch_size):
-            target = reward
-            if not done:
-                target = (reward + self.gamma * np.amax(self.target_model.predict(next_state)[0]))
-            target_f = self.model.predict(state)
-            target_f[0][action] = target
+        state = np.zeros((self.batch_size, self.state_size))
+        next_state = np.zeros((self.batch_size, self.state_size))
+        action, reward, done = [], [], []
 
-            batch_train_x.append(state[0])
-            batch_train_y.append(target_f[0])
+        for i in range(self.batch_size):
+            state[i] = random_batch[i][0]
+            action.append(random_batch[i][1])
+            reward.append(random_batch[i][2])
+            next_state[i] = random_batch[i][3]
+            done.append(random_batch[i][4])
+
+        # Batch prediction to save speed
+        target = self.model.predict(state)
+        target_next = self.target_model(next_state)
+
+        for i in range(len(random_batch)):
+            if done[i]:
+                target[i][action[i]] = reward[i]
+            else:
+                target[i][action[i]] = reward[i] + self.gamma * (np.amax(target_next[i]))
 
         self.model.fit(
-            np.array(batch_train_x),
-            np.array(batch_train_y),
-            epochs=1,
+            np.array(state),
+            np.array(target),
+            batch_size=self.batch_size,
             verbose=0
         )
 
@@ -96,11 +107,11 @@ if __name__ == "__main__":
         env = gym.wrappers.Monitor(env, "recording", video_callable=lambda episode_id: True, force=True)
 
     # Defines training related constants
-    batch_size = 32
     num_episodes = 5000
     num_episode_steps = env.spec.max_episode_steps  # constant value
     action_size = env.action_space.n
     state_size = env.observation_space.shape[0]
+    total_steps = 0
 
     # Creates an agent
     agent = Agent(state_size=state_size, action_size=action_size)
@@ -136,12 +147,16 @@ if __name__ == "__main__":
             # Memorizes the experience
             agent.memorize(state, action, reward, next_state, done)
 
+            # Updates the slow target's weights
+            if total_steps % agent.max_tau == 0:
+                agent.update_target_network()
+
+            # Updates network weights
+            if total_steps % agent.update_frequency == 0:
+                agent.replay()
+
             # Updates the state
             state = next_state
-
-            # Allows agent to learn from previous experiences
-            if len(agent.memory) > batch_size:
-                agent.replay(batch_size)
 
             if done:
                 print("Episode %d/%d finished after %d episode steps with total reward = %f."
@@ -157,6 +172,8 @@ if __name__ == "__main__":
 
         # Saves the weights
         agent.save_weights("lunar_lander-v0.h5")
+
+        total_steps += 1
 
     # Closes the environment
     env.close()
