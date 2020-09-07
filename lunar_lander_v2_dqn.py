@@ -18,7 +18,7 @@ class Agent:
         self.action_size = action_size
         self.batch_size = batch_size
         self.memory = deque(maxlen=memory_size)
-        self.max_tau = 1000
+        self.tau = 1000
         self.update_frequency = 4
         self.gamma = 0.999  # discount rate
         self.epsilon = 1  # exploration rate
@@ -148,7 +148,7 @@ if __name__ == "__main__":
             agent.memorize(state, action, reward, next_state, done)
 
             # Updates the slow target's weights
-            if total_steps % agent.max_tau == 0:
+            if total_steps % agent.tau == 0:
                 agent.update_target_network()
 
             # Updates network weights
