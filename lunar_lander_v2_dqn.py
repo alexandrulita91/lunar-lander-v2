@@ -13,27 +13,26 @@ from keras.optimizers import Adam
 
 
 class Agent:
-    def __init__(self, state_size, action_size, batch_size=64, memory_size=100000):
+    def __init__(self, state_size, action_size, batch_size=32, memory_size=50000):
         self.state_size = state_size
         self.action_size = action_size
         self.batch_size = batch_size
         self.memory = deque(maxlen=memory_size)
         self.tau = 1000
-        self.update_frequency = 4
-        self.gamma = 0.999  # discount rate
+        self.update_frequency = 1
+        self.gamma = 0.95  # discount rate
         self.epsilon = 1  # exploration rate
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.99
-        self.learning_rate = 0.005
+        self.epsilon_decay = 0.995
+        self.learning_rate = 0.001
         self.model = self._build_model()
         self.target_model = self._build_model()
         self.target_model.set_weights(self.model.get_weights())
 
     def _build_model(self):
         model = Sequential()
-        model.add(Dense(64, input_dim=self.state_size, activation='relu'))
-        model.add(Dense(64, activation='relu'))
-        model.add(Dense(32, activation='relu'))
+        model.add(Dense(24, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(24, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
