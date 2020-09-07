@@ -41,7 +41,6 @@ class Agent:
     def update_target_network(self):
         self.target_model = clone_model(self.model)
         self.target_model.set_weights(self.model.get_weights())
-        self.tau = 0
 
     def memorize(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
