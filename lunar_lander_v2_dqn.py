@@ -13,13 +13,13 @@ from keras.optimizers import Adam
 
 
 class Agent:
-    def __init__(self, state_size, action_size, batch_size=32, memory_size=50000):
+    def __init__(self, state_size, action_size, batch_size=32, memory_size=100000):
         self.state_size = state_size
         self.action_size = action_size
         self.batch_size = batch_size
         self.memory = deque(maxlen=memory_size)
-        self.tau = 1000
         self.update_frequency = 1
+        self.tau = 1000
         self.gamma = 0.95  # discount rate
         self.epsilon = 1  # exploration rate
         self.epsilon_min = 0.01
@@ -50,7 +50,7 @@ class Agent:
         else:
             return np.argmax(self.model.predict(state)[0])
 
-    def replay(self):
+    def experience_reply(self):
         if self.batch_size > len(self.memory):
             return
 
@@ -95,7 +95,7 @@ class Agent:
 
 if __name__ == "__main__":
     # Flag used to enable or disable screen recording
-    recording_is_enabled = True
+    recording_is_enabled = False
 
     # Initializes the environment
     env = gym.make('LunarLander-v2')
@@ -145,16 +145,19 @@ if __name__ == "__main__":
             # Memorizes the experience
             agent.memorize(state, action, reward, next_state, done)
 
-            # Updates the slow target's weights
+            # Updates the target network weights
             if total_steps % agent.tau == 0:
                 agent.update_target_network()
 
-            # Updates network weights
+            # Updates the online network weights
             if total_steps % agent.update_frequency == 0:
-                agent.replay()
+                agent.experience_reply()
 
             # Updates the state
             state = next_state
+
+            # Updates the total steps
+            total_steps += 1
 
             if done:
                 print("Episode %d/%d finished after %d episode steps with total reward = %f."
@@ -165,13 +168,12 @@ if __name__ == "__main__":
                 print("Episode %d/%d timed out at %d with total reward = %f."
                       % (episode + 1, num_episodes, episode_step + 1, total_reward))
 
-        # Update epsilon
+        # Updates the epsilon value
         agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
 
-        # Saves the weights
-        agent.save_weights("lunar_lander-v0.h5")
-
-        total_steps += 1
+        # Saves the online network weights
+        if total_reward >= 200:
+            agent.save_weights("lunar_lander-v0.h5")
 
     # Closes the environment
     env.close()
