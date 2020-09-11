@@ -13,26 +13,27 @@ from keras.optimizers import Adam
 
 
 class Agent:
-    def __init__(self, state_size, action_size, batch_size=32, memory_size=100000):
+    def __init__(self, state_size, action_size, batch_size=64, memory_size=100000):
         self.state_size = state_size
         self.action_size = action_size
         self.batch_size = batch_size
         self.memory = deque(maxlen=memory_size)
-        self.update_frequency = 1
+        self.update_frequency = 4
         self.tau = 1000
-        self.gamma = 0.95  # discount rate
+        self.gamma = 0.999  # discount rate
         self.epsilon = 1  # exploration rate
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
-        self.learning_rate = 0.001
+        self.epsilon_decay = 0.99
+        self.learning_rate = 0.0005
         self.model = self._build_model()
         self.target_model = self._build_model()
         self.target_model.set_weights(self.model.get_weights())
 
     def _build_model(self):
         model = Sequential()
-        model.add(Dense(24, input_dim=self.state_size, activation='relu'))
-        model.add(Dense(24, activation='relu'))
+        model.add(Dense(64, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(64, activation='relu'))
+        model.add(Dense(32, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
@@ -145,13 +146,13 @@ if __name__ == "__main__":
             # Memorizes the experience
             agent.memorize(state, action, reward, next_state, done)
 
-            # Updates the target network weights
-            if total_steps % agent.tau == 0:
-                agent.update_target_network()
-
             # Updates the online network weights
             if total_steps % agent.update_frequency == 0:
                 agent.experience_reply()
+
+            # Updates the target network weights
+            if total_steps % agent.tau == 0:
+                agent.update_target_network()
 
             # Updates the state
             state = next_state
@@ -172,8 +173,7 @@ if __name__ == "__main__":
         agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
 
         # Saves the online network weights
-        if total_reward >= 200:
-            agent.save_weights("lunar_lander-v0.h5")
+        agent.save_weights("lunar_lander-v0.h5")
 
     # Closes the environment
     env.close()
