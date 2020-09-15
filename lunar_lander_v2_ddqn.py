@@ -176,6 +176,7 @@ if __name__ == "__main__":
         # Saves the online network weights
         if total_reward >= max_reward:
             agent.save_weights("lunar_lander-v0.h5")
+            max_reward = total_reward
 
     # Closes the environment
     env.close()
