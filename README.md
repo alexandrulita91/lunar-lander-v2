@@ -6,6 +6,7 @@ OpenAI Gym is a toolkit for developing and comparing reinforcement learning algo
 
 ## Reinforcement learning algorithms
 - Deep Q-learning with Experience Replay (off-policy, model-free)
+- Double Deep Q-learning with Experience Replay (off-policy, model-free)
 
 ## Demo video
 https://www.youtube.com/watch?v=PEhddjD6QCY
@@ -22,8 +23,9 @@ You can install the required Python packages using the following command:
 - `pipenv sync`
 
 ## How to run it
-You can run the script using the following command: 
+You can run the scripts using the following commands: 
 - `pipenv run python lunar_lander_v2_dqn.py`
+- `pipenv run python lunar_lander_v2_ddqn.py`
 
 ## Improvement ideas
 - improve the code quality

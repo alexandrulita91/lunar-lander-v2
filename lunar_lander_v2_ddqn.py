@@ -1,5 +1,5 @@
 """
-LunarLander-v2 -- Deep Q-learning with Experience Replay
+LunarLander-v2 -- Double Deep Q-learning with Experience Replay
 """
 import os
 import random
@@ -18,12 +18,16 @@ class Agent:
         self.action_size = action_size
         self.batch_size = batch_size
         self.memory = deque(maxlen=memory_size)
+        self.update_frequency = 4
+        self.tau = 1000
         self.gamma = 0.999  # discount rate
         self.epsilon = 1  # exploration rate
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.99
         self.learning_rate = 0.0005
         self.model = self._build_model()
+        self.target_model = self._build_model()
+        self.target_model.set_weights(self.model.get_weights())
 
     def _build_model(self):
         model = Sequential()
@@ -33,6 +37,10 @@ class Agent:
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
+
+    def update_target_network(self):
+        self.target_model = clone_model(self.model)
+        self.target_model.set_weights(self.model.get_weights())
 
     def memorize(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -63,7 +71,7 @@ class Agent:
 
         # Batch prediction to save speed
         target = self.model.predict(state)
-        target_next = self.model(next_state)
+        target_next = self.target_model(next_state)
 
         for i in range(len(random_batch)):
             if done[i]:
@@ -102,6 +110,7 @@ if __name__ == "__main__":
     num_episode_steps = env.spec.max_episode_steps  # constant value
     action_size = env.action_space.n
     state_size = env.observation_space.shape[0]
+    total_steps = 0
     max_reward = 0
 
     # Creates an agent
@@ -138,11 +147,19 @@ if __name__ == "__main__":
             # Memorizes the experience
             agent.memorize(state, action, reward, next_state, done)
 
-            # Updates the network weights
-            agent.experience_reply()
+            # Updates the online network weights
+            if total_steps % agent.update_frequency == 0:
+                agent.experience_reply()
+
+            # Updates the target network weights
+            if total_steps % agent.tau == 0:
+                agent.update_target_network()
 
             # Updates the state
             state = next_state
+
+            # Updates the total steps
+            total_steps += 1
 
             if done:
                 print("Episode %d/%d finished after %d episode steps with total reward = %f."
@@ -156,7 +173,7 @@ if __name__ == "__main__":
         # Updates the epsilon value
         agent.epsilon = max(agent.epsilon_min, agent.epsilon * agent.epsilon_decay)
 
-        # Saves the network weights
+        # Saves the online network weights
         if total_reward >= max_reward:
             agent.save_weights("lunar_lander-v0.h5")
 
