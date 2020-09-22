@@ -26,7 +26,3 @@ You can install the required Python packages using the following command:
 You can run the scripts using the following commands: 
 - `pipenv run python lunar_lander_v2_dqn.py`
 - `pipenv run python lunar_lander_v2_ddqn.py`
-
-## Improvement ideas
-- improve the code quality
-- remove unnecessary comments
