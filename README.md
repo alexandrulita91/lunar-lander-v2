@@ -5,8 +5,8 @@ Landing pad is always at coordinates (0,0). Coordinates are the first two number
 OpenAI Gym is a toolkit for developing and comparing reinforcement learning algorithms. It supports teaching agents everything from walking to playing games like pong or pinball. Gym is an open source interface to reinforcement learning tasks.
 
 ## Reinforcement learning algorithms
-- Deep Q-learning with Experience Replay (off-policy, model-free)
-- Double Deep Q-learning with Experience Replay (off-policy, model-free)
+- Deep Q-learning (off-policy, model-free)
+- Double Deep Q-learning (off-policy, model-free)
 
 ## Demo video
 https://www.youtube.com/watch?v=PEhddjD6QCY

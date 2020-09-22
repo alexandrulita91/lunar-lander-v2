@@ -1,5 +1,5 @@
 """
-LunarLander-v2 -- Double Deep Q-learning with Experience Replay
+LunarLander-v2 -- Double Deep Q-learning
 """
 import os
 import random
